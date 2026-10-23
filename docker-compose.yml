@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: inbox
+      POSTGRES_PASSWORD: inbox
+      POSTGRES_DB: inbox
+    ports: ["54320:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "inbox"]
+      interval: 2s
+      retries: 30
+
+  # The mock mail provider (Next.js API routes). Your frontend goes here too.
+  web:
+    build: .
+    image: readywhen-ai-challenge
+    command: npm run start:web
+    environment:
+      DATABASE_URL: postgres://inbox:inbox@postgres:5432/inbox
+    ports: ["3000:3000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # The Mastra server running the inbox agent.
+  agent:
+    image: readywhen-ai-challenge
+    command: npm run start:agent
+    environment:
+      DATABASE_URL: postgres://inbox:inbox@postgres:5432/inbox
+      MAIL_API_URL: http://web:3000
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      MASTRA_HOST: 0.0.0.0
+    ports: ["4111:4111"]
+    depends_on: [web]
+
+volumes:
+  pgdata:

@@ -1,0 +1,6 @@
+node_modules
+.next
+.mastra
+.env
+.env.local
+.git
